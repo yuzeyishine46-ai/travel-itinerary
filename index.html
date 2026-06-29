@@ -435,11 +435,11 @@ body {
 
 /* Budget overlay */
 .budget-overlay {
-  display: none; position: fixed; inset: 0; z-index: 90;
+  display: none !important; position: fixed; inset: 0; z-index: 90;
   background: rgba(26,24,20,0.45);
   align-items: flex-end; justify-content: flex-end;
 }
-.budget-overlay.open { display: flex; }
+.budget-overlay.open { display: flex !important; }
 .budget-panel {
   background: var(--paper);
   width: 100%; max-width: 420px;
@@ -660,7 +660,7 @@ body {
 
 
 <!-- Budget Panel -->
-<div class="budget-overlay" id="budgetOverlay">
+<div class="budget-overlay" id="budgetOverlay" style="">
   <div class="budget-panel">
     <div class="budget-header">
       <h2>預估費用統計</h2>
@@ -1720,6 +1720,11 @@ const MODE_ICON  = { 步行:'🚶', 公車:'🚌', 電車:'🚆', 飛機:'✈️
     });
     curTrip = 0; cur = 0;
     renderSidebar(); renderMain();
+    // Close any stray overlays
+    ['budgetOverlay','itemOverlay','dayOverlay','moveOverlay','newTripOverlay','shareOverlay'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el){ el.classList.remove('open'); el.style.display=''; }
+    });
     // Load items for first trip
     if(trips.length) await loadTripItems(0);
   } catch(e){
