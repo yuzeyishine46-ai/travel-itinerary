@@ -411,41 +411,14 @@ body {
 }
 .budget-fab:hover { background: var(--ink-2); transform: scale(1.06); }
 
-/* Share FAB */
-.share-fab {
-  position: fixed; bottom: 88px; right: 24px; z-index: 50;
-  width: 52px; height: 52px; border-radius: 50%;
-  background: #5b4fcf; color: #fff;
-  border: none; cursor: pointer; font-size: 20px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-  display: none; align-items: center; justify-content: center;
-  transition: background .15s, transform .1s;
-}
-.share-fab:hover { background: #4a3fb8; transform: scale(1.06); }
 
-/* Share modal */
-.share-link-box {
-  display: flex; gap: 8px; align-items: center;
-  background: var(--paper-2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 12px; margin-top: 10px;
-  word-break: break-all;
-}
-.share-link-text { font-size: 12px; color: var(--ink-2); flex: 1; line-height: 1.5; }
-.share-copy-btn {
-  padding: 6px 12px; border-radius: 7px; font-size: 12px;
-  border: 1px solid var(--border); background: #fff; cursor: pointer;
-  white-space: nowrap; flex-shrink: 0; font-family: var(--sans);
-  transition: all .15s;
-}
-.share-copy-btn:hover { background: var(--teal-light); border-color: rgba(29,122,110,0.3); color: var(--teal); }
-.share-note { font-size: 11px; color: var(--ink-3); margin-top: 8px; line-height: 1.6; }
+
+
 
 @media (max-width: 767px) {
-  .share-fab { bottom: 80px; right: 16px; width: 48px; height: 48px; font-size: 18px; }
 }
 
-@media print {
-  body { background: #fff !important; }
+
   .shell { display: block !important; height: auto !important; overflow: visible !important; }
   .top-nav, .budget-fab, .share-fab, .overlay, #welcomeScreen { display: none !important; }
   .main { overflow: visible !important; height: auto !important; }
@@ -458,8 +431,7 @@ body {
   .print-header { display: block !important; }
   .print-day-header { display: block !important; }
 }
-.print-header { display: none; }
-.print-day-header { display: none; }
+
 
 /* Budget overlay */
 .budget-overlay {
@@ -645,6 +617,7 @@ body {
       </div>
       <div class="topbar-actions">
         <button class="btn" onclick="openDayModal(true)">✎ 編輯此日</button>
+        <button class="btn" onclick="openShareModal()" style="color:var(--teal);border-color:rgba(29,122,110,0.3);">🔗 分享</button>
         <button class="btn btn-primary" onclick="openItemModal()">＋ 新增行程</button>
       </div>
     </div>
@@ -672,8 +645,7 @@ body {
     </div>
 
     <div id="timelineWrap" class="timeline-wrap">
-      <div class="print-header" id="printHeader"></div>
-      <div class="timeline" id="timeline"></div>
+<div class="timeline" id="timeline"></div>
       <div id="emptyMsg" class="empty" style="display:none">
         <div style="font-size:32px;opacity:0.3">✦</div>
         <p>尚無行程，點擊右上角「＋ 新增行程」開始規劃</p>
@@ -681,9 +653,6 @@ body {
     </div>
   </main>
 </div>
-
-<!-- Share FAB -->
-<button class="share-fab" id="shareFab" onclick="exportPDF()" title="匯出 PDF">🖨</button>
 
 <!-- Budget FAB -->
 <button class="budget-fab" id="budgetFab" onclick="openBudget()" title="費用統計">💴</button>
@@ -698,6 +667,19 @@ body {
       <button class="budget-close" onclick="closeBudget()">✕</button>
     </div>
     <div class="budget-body" id="budgetBody"></div>
+  </div>
+</div>
+
+<!-- Share Modal -->
+<div class="overlay" id="shareOverlay">
+  <div class="modal day-modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h2>分享行程（唯讀）</h2>
+      <button class="modal-close" onclick="closeShareModal()">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink-2);margin-bottom:12px;">旅伴點開連結即可查看完整行程，無法編輯。</p>
+    <div id="shareLinkBox" style="background:var(--paper-2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--ink-2);line-height:1.6;word-break:break-all;margin-bottom:10px;">產生中…</div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="copyShareLink()">複製連結</button>
   </div>
 </div>
 
@@ -936,8 +918,7 @@ function renderSidebar(){
   if(topNav) topNav.style.display = trips.length ? 'flex' : 'none';
   const fab = document.getElementById('budgetFab');
   if(fab) fab.style.display = trips.length ? 'flex' : 'none';
-  const sfab = document.getElementById('shareFab');
-  if(sfab) sfab.style.display = trips.length ? 'flex' : 'none';
+
   document.getElementById('dayList').innerHTML = days.map((d,i) =>
     `<div class="day-item${i===cur?' active':''}" onclick="switchDay(${i})">
       <div class="day-num">${i+1}</div>
@@ -1437,6 +1418,91 @@ document.getElementById('itemOverlay').addEventListener('click',e=>{if(e.target=
 document.getElementById('dayOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDayModal();});
 document.getElementById('moveOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMoveModal();});
 
+// ── Share ────────────────────────────────────────────────────────────────
+async function openShareModal(){
+  const trip = getTrip();
+  if(!trip) return;
+  document.getElementById('shareLinkBox').textContent = '產生中…';
+  document.getElementById('shareOverlay').classList.add('open');
+  try {
+    // Ensure shareToken exists
+    let token = trip.shareToken;
+    if(!token){
+      const updated = await api('PATCH', `/trips/${trip.id}`, { shareToken: genShareToken() });
+      token = updated.shareToken;
+      trip.shareToken = token;
+    }
+    const url = `${location.origin}${location.pathname}?share=${token}`;
+    document.getElementById('shareLinkBox').textContent = url;
+  } catch(e){
+    document.getElementById('shareLinkBox').textContent = '產生失敗：' + e.message;
+  }
+}
+function closeShareModal(){
+  document.getElementById('shareOverlay').classList.remove('open');
+}
+function copyShareLink(){
+  const text = document.getElementById('shareLinkBox').textContent;
+  if(!text || text.startsWith('產生')) return;
+  navigator.clipboard.writeText(text).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+  toast('連結已複製！');
+  closeShareModal();
+}
+function genShareToken(){
+  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+}
+document.getElementById('shareOverlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeShareModal(); });
+
+// ── Load shared view from URL ─────────────────────────────────────────────
+(async function checkSharedView(){
+  const params = new URLSearchParams(location.search);
+  const token = params.get('share');
+  if(!token) return;
+  showLoading('載入分享行程…');
+  try {
+    const { trip, items } = await api('GET', `/share/${token}`);
+    // Build days
+    const sd = new Date(trip.startDate+'T00:00:00');
+    const ed = new Date(trip.endDate+'T00:00:00');
+    const total = Math.round((ed-sd)/86400000)+1;
+    const days = [];
+    for(let i=0;i<total;i++){
+      const dt = new Date(sd.getTime()); dt.setDate(dt.getDate()+i);
+      const iso = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+      days.push({ city:'', dateStr:fmtFull(iso), isoDate:iso, items:[] });
+    }
+    items.forEach(it => {
+      const d = days[it.dayIndex];
+      if(d){ d.items = d.items||[]; d.items.push(it); if(it.city) d.city=it.city; }
+    });
+    trips = [{ ...trip, days }];
+    curTrip = 0; cur = 0;
+    // Read-only mode
+    const style = document.createElement('style');
+    style.textContent = `
+      .topbar-actions { display:none !important; }
+      #topNav .btn-add-day { display:none !important; }
+      .trip-tab .tab-close { display:none !important; }
+      .row { cursor:default !important; }
+      .drag-handle { display:none !important; }
+      .budget-fab { bottom:24px !important; }
+    `;
+    document.head.appendChild(style);
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:200;background:var(--teal);color:#fff;text-align:center;padding:9px 16px;font-size:12px;font-family:var(--sans);letter-spacing:0.02em;';
+    banner.textContent = '👁 唯讀模式・你正在查看共享行程';
+    document.body.prepend(banner);
+    document.querySelector('.shell').style.paddingTop = '37px';
+    renderSidebar(); renderMain();
+  } catch(e){
+    toast('無法載入分享行程：' + e.message, true);
+  } finally { hideLoading(); }
+})();
+
 // ── Budget Panel ──────────────────────────────────────────────────────────
 const TYPE_META = {
   must:     { label: '重點景點', color: '#c8971e' },
@@ -1619,67 +1685,7 @@ async function wCreate(){
 const TYPE_LABEL = { must:'★ 重點景點', optional:'一般景點', meal:'用餐時間', free:'自由時間', transit:'交通移動', other:'其他' };
 const MODE_ICON  = { 步行:'🚶', 公車:'🚌', 電車:'🚆', 飛機:'✈️', 渡船:'⛴', 其他:'🚗' };
 
-function exportPDF(){
-  const trip = trips[curTrip];
-  if(!trip){ alert('請先建立行程'); return; }
 
-  // Build print header: title + all days
-  const days = getDays();
-  const tripName = trip.name || '旅遊行程';
-
-  // Generate full print content replacing timeline
-  const tl = document.getElementById('timeline');
-  const ph = document.getElementById('printHeader');
-
-  // Build HTML for all days in this trip
-  let html = `<div style="font-family:'Noto Serif TC',serif;font-size:22px;font-weight:500;margin-bottom:4px;">${tripName}</div>`;
-  const firstDate = days[0]?.dateStr || '';
-  const lastDate  = days[days.length-1]?.dateStr || '';
-  if(firstDate) html += `<div style="font-size:12px;color:#888;margin-bottom:24px;">${firstDate}${lastDate&&lastDate!==firstDate?' – '+lastDate:''}</div>`;
-
-  trip.days.forEach((d, di) => {
-    if(!d.items || !d.items.length) return;
-    html += `<div style="margin-top:20px;margin-bottom:8px;padding-bottom:5px;border-bottom:1.5px solid #ddd;">
-      <span style="font-size:14px;font-weight:500;">DAY ${di+1}${d.city?' · '+d.city:''}</span>
-      <span style="font-size:11px;color:#999;margin-left:8px;">${d.dateStr||''}</span>
-    </div>`;
-    d.items.forEach(it => {
-      const timeStr = [it.start, it.end].filter(Boolean).join(' → ');
-      const title = it.type==='transit' && it.transitMode
-        ? `${MODE_ICON[it.transitMode]||''} ${it.transitMode}` : it.content;
-      const typeLabel = TYPE_LABEL[it.type] || it.type;
-      const bgMap = { must:'#f5e9c8', optional:'#d4ede9', meal:'#f5e0d8', free:'#ecdeed', transit:'#ddeeff', other:'#fff' };
-      const bg = bgMap[it.type] || '#fff';
-      html += `<div style="display:flex;gap:0;margin-bottom:3px;border-radius:5px;overflow:hidden;border:1px solid #e8e4da;background:${bg};">
-        <div style="width:90px;flex-shrink:0;padding:7px 10px;font-size:11px;font-weight:500;color:#555;border-right:1px solid #e8e4da;">
-          ${it.start||''}<br>${it.end?'→ '+it.end:''}
-          ${it.timeNote?`<div style="font-size:10px;font-style:italic;color:#888;">${it.timeNote}</div>`:''}
-        </div>
-        <div style="flex:1;padding:7px 12px;min-width:0;">
-          <div style="font-size:13px;font-weight:500;">${title}</div>
-          ${it.desc?`<div style="font-size:11px;color:#666;margin-top:2px;">${it.desc}</div>`:''}
-          ${it.from||it.to?`<div style="font-size:11px;color:#1a5fa8;margin-top:2px;">${[it.from,it.to].filter(Boolean).join(' → ')}</div>`:''}
-          ${it.note?`<div style="font-size:10px;color:#888;margin-top:2px;">📌 ${it.note}</div>`:''}
-        </div>
-        <div style="padding:7px 10px;display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;">
-          ${it.cost?`<span style="font-size:10px;font-weight:500;background:#f5e9c8;color:#855c00;padding:2px 7px;border-radius:20px;">¥${Number(it.cost).toLocaleString()}</span>`:''}
-          ${it.required?`<span style="font-size:10px;background:#f5e0d8;color:#c04e2e;padding:2px 7px;border-radius:20px;">${it.required}</span>`:''}
-        </div>
-      </div>`;
-    });
-  });
-
-  ph.innerHTML = html;
-
-  // Show print header, hide interactive timeline
-  ph.style.display = 'block';
-  tl.style.display = 'none';
-
-  window.print();
-
-  // Restore
-  setTimeout(()=>{ ph.style.display='none'; tl.style.display='flex'; }, 500);
-}
 
 // Build 24hr hour/minute options
 (function buildTimeOpts(){
