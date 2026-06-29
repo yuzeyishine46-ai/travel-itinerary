@@ -420,26 +420,16 @@ body {
 
 
   .shell { display: block !important; height: auto !important; overflow: visible !important; }
-  .top-nav, .budget-fab, .share-fab, .overlay, #welcomeScreen { display: none !important; }
-  .main { overflow: visible !important; height: auto !important; }
-  #mainTopbar { display: none !important; }
-  #timelineWrap { display: block !important; padding: 0 !important; }
-  .timeline { gap: 2px !important; }
-  .row { break-inside: avoid; border: 1px solid #ddd !important; border-radius: 5px !important; }
-  .drag-handle { display: none !important; }
-  .row-meta { flex-direction: row !important; }
-  .print-header { display: block !important; }
-  .print-day-header { display: block !important; }
-}
+  .
 
 
 /* Budget overlay */
 .budget-overlay {
-  display: none !important; position: fixed; inset: 0; z-index: 90;
+  display: none; position: fixed; inset: 0; z-index: 90;
   background: rgba(26,24,20,0.45);
   align-items: flex-end; justify-content: flex-end;
 }
-.budget-overlay.open { display: flex !important; }
+.budget-overlay.open { display: flex; }
 .budget-panel {
   background: var(--paper);
   width: 100%; max-width: 420px;
@@ -617,7 +607,6 @@ body {
       </div>
       <div class="topbar-actions">
         <button class="btn" onclick="openDayModal(true)">✎ 編輯此日</button>
-        <button class="btn" onclick="openShareModal()" style="color:var(--teal);border-color:rgba(29,122,110,0.3);">🔗 分享</button>
         <button class="btn btn-primary" onclick="openItemModal()">＋ 新增行程</button>
       </div>
     </div>
@@ -660,26 +649,13 @@ body {
 
 
 <!-- Budget Panel -->
-<div class="budget-overlay" id="budgetOverlay" style="">
+<div class="budget-overlay" id="budgetOverlay" style="display:none;">
   <div class="budget-panel">
     <div class="budget-header">
       <h2>預估費用統計</h2>
       <button class="budget-close" onclick="closeBudget()">✕</button>
     </div>
     <div class="budget-body" id="budgetBody"></div>
-  </div>
-</div>
-
-<!-- Share Modal -->
-<div class="overlay" id="shareOverlay">
-  <div class="modal day-modal" style="max-width:400px;">
-    <div class="modal-header">
-      <h2>分享行程（唯讀）</h2>
-      <button class="modal-close" onclick="closeShareModal()">✕</button>
-    </div>
-    <p style="font-size:13px;color:var(--ink-2);margin-bottom:12px;">旅伴點開連結即可查看完整行程，無法編輯。</p>
-    <div id="shareLinkBox" style="background:var(--paper-2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--ink-2);line-height:1.6;word-break:break-all;margin-bottom:10px;">產生中…</div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="copyShareLink()">複製連結</button>
   </div>
 </div>
 
@@ -1418,91 +1394,6 @@ document.getElementById('itemOverlay').addEventListener('click',e=>{if(e.target=
 document.getElementById('dayOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDayModal();});
 document.getElementById('moveOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMoveModal();});
 
-// ── Share ────────────────────────────────────────────────────────────────
-async function openShareModal(){
-  const trip = getTrip();
-  if(!trip) return;
-  document.getElementById('shareLinkBox').textContent = '產生中…';
-  document.getElementById('shareOverlay').classList.add('open');
-  try {
-    // Ensure shareToken exists
-    let token = trip.shareToken;
-    if(!token){
-      const updated = await api('PATCH', `/trips/${trip.id}`, { shareToken: genShareToken() });
-      token = updated.shareToken;
-      trip.shareToken = token;
-    }
-    const url = `${location.origin}${location.pathname}?share=${token}`;
-    document.getElementById('shareLinkBox').textContent = url;
-  } catch(e){
-    document.getElementById('shareLinkBox').textContent = '產生失敗：' + e.message;
-  }
-}
-function closeShareModal(){
-  document.getElementById('shareOverlay').classList.remove('open');
-}
-function copyShareLink(){
-  const text = document.getElementById('shareLinkBox').textContent;
-  if(!text || text.startsWith('產生')) return;
-  navigator.clipboard.writeText(text).catch(()=>{
-    const ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-  });
-  toast('連結已複製！');
-  closeShareModal();
-}
-function genShareToken(){
-  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-}
-document.getElementById('shareOverlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeShareModal(); });
-
-// ── Load shared view from URL ─────────────────────────────────────────────
-(async function checkSharedView(){
-  const params = new URLSearchParams(location.search);
-  const token = params.get('share');
-  if(!token) return;
-  showLoading('載入分享行程…');
-  try {
-    const { trip, items } = await api('GET', `/share/${token}`);
-    // Build days
-    const sd = new Date(trip.startDate+'T00:00:00');
-    const ed = new Date(trip.endDate+'T00:00:00');
-    const total = Math.round((ed-sd)/86400000)+1;
-    const days = [];
-    for(let i=0;i<total;i++){
-      const dt = new Date(sd.getTime()); dt.setDate(dt.getDate()+i);
-      const iso = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
-      days.push({ city:'', dateStr:fmtFull(iso), isoDate:iso, items:[] });
-    }
-    items.forEach(it => {
-      const d = days[it.dayIndex];
-      if(d){ d.items = d.items||[]; d.items.push(it); if(it.city) d.city=it.city; }
-    });
-    trips = [{ ...trip, days }];
-    curTrip = 0; cur = 0;
-    // Read-only mode
-    const style = document.createElement('style');
-    style.textContent = `
-      .topbar-actions { display:none !important; }
-      #topNav .btn-add-day { display:none !important; }
-      .trip-tab .tab-close { display:none !important; }
-      .row { cursor:default !important; }
-      .drag-handle { display:none !important; }
-      .budget-fab { bottom:24px !important; }
-    `;
-    document.head.appendChild(style);
-    const banner = document.createElement('div');
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:200;background:var(--teal);color:#fff;text-align:center;padding:9px 16px;font-size:12px;font-family:var(--sans);letter-spacing:0.02em;';
-    banner.textContent = '👁 唯讀模式・你正在查看共享行程';
-    document.body.prepend(banner);
-    document.querySelector('.shell').style.paddingTop = '37px';
-    renderSidebar(); renderMain();
-  } catch(e){
-    toast('無法載入分享行程：' + e.message, true);
-  } finally { hideLoading(); }
-})();
-
 // ── Budget Panel ──────────────────────────────────────────────────────────
 const TYPE_META = {
   must:     { label: '重點景點', color: '#c8971e' },
@@ -1514,10 +1405,14 @@ const TYPE_META = {
 };
 function openBudget(){
   renderBudget();
-  document.getElementById('budgetOverlay').classList.add('open');
+  const bo = document.getElementById('budgetOverlay');
+  bo.style.display = 'flex';
+  bo.classList.add('open');
 }
 function closeBudget(){
-  document.getElementById('budgetOverlay').classList.remove('open');
+  const bo = document.getElementById('budgetOverlay');
+  bo.classList.remove('open');
+  bo.style.display = 'none';
 }
 function renderBudget(){
   const body = document.getElementById('budgetBody');
@@ -1720,11 +1615,6 @@ const MODE_ICON  = { 步行:'🚶', 公車:'🚌', 電車:'🚆', 飛機:'✈️
     });
     curTrip = 0; cur = 0;
     renderSidebar(); renderMain();
-    // Close any stray overlays
-    ['budgetOverlay','itemOverlay','dayOverlay','moveOverlay','newTripOverlay','shareOverlay'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el){ el.classList.remove('open'); el.style.display=''; }
-    });
     // Load items for first trip
     if(trips.length) await loadTripItems(0);
   } catch(e){
