@@ -190,7 +190,7 @@ body {
 /* Row types */
 .row {
   display: grid;
-  grid-template-columns: 24px 110px 1fr auto;
+  grid-template-columns: 24px 130px 1fr auto;
   align-items: stretch;
   border-radius: 8px;
   overflow: hidden;
@@ -212,8 +212,14 @@ body {
   border-right: 1px solid transparent;
   background: inherit;
 }
-.row-time .t1 { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.row-time { white-space: nowrap; }
+.row-time .t1 { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; white-space: nowrap; }
 .row-time .t2 { font-size: 11px; margin-top: 2px; opacity: 0.65; }
+.route-tag {
+  display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 500;
+  color: #1a5fa8; background: #ddeeff; padding: 2px 8px; border-radius: 20px;
+  vertical-align: middle;
+}
 .row-body { padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .row-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-desc { font-size: 11px; opacity: 0.7; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -397,6 +403,14 @@ body {
 }
 .trip-tab:hover .tab-close, .trip-tab.active .tab-close { opacity: 1; }
 .trip-tab .tab-close:hover { background: rgba(0,0,0,0.12); }
+.trip-tab .tab-rename {
+  width: 16px; height: 16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; opacity: 0; transition: opacity .15s;
+  cursor: pointer; color: inherit;
+}
+.trip-tab:hover .tab-rename, .trip-tab.active .tab-rename { opacity: 0.6; }
+.trip-tab .tab-rename:hover { opacity: 1 !important; background: rgba(0,0,0,0.12); }
 #tripTabs::-webkit-scrollbar { display: none; }
 
 /* Budget FAB */
@@ -511,7 +525,7 @@ body {
   .timeline { gap: 4px; }
 
   /* Rows — wider time col, larger text */
-  .row { grid-template-columns: 28px 120px 1fr auto; }
+  .row { grid-template-columns: 28px 145px 1fr auto; }
   .row-time { padding: 12px 14px; }
   .row-time .t1 { font-size: 13px; }
   .row-body { padding: 12px 16px; }
@@ -898,8 +912,9 @@ function renderSidebar(){
   const tabsEl = document.getElementById('tripTabs');
   if(tabsEl){
     tabsEl.innerHTML = trips.map((t,i)=>
-      `<button class="trip-tab${i===curTrip?' active':''}" onclick="switchTrip(${i})">
+      `<button class="trip-tab${i===curTrip?' active':''}" onclick="switchTrip(${i})" ondblclick="event.stopPropagation();renameTrip(${i})">
         ${t.name||'旅程'+(i+1)}
+        <span class="tab-rename" onclick="event.stopPropagation();renameTrip(${i})" title="重新命名">✎</span>
         <span class="tab-close" onclick="event.stopPropagation();deleteTrip(${i})">✕</span>
       </button>`
     ).join('');
@@ -955,17 +970,15 @@ function rowHTML(it,i){
   if(it.cost) badges.push(`<span class="badge b-cost">¥${Number(it.cost).toLocaleString()}</span>`);
   if(it.note) badges.push(`<span class="badge b-note" title="${it.note}">📌 ${it.note}</span>`);
   if(it.link) badges.push(`<a class="badge b-transport" href="${it.link}" target="_blank" onclick="event.stopPropagation()">🔗 地圖</a>`);
-  if(it.from || it.to){
-    const s = [it.from, it.to].filter(Boolean).join(' → ');
-    badges.push(`<span class="badge" style="background:#ddeeff;color:#1a5fa8;">${s}</span>`);
-  }
   const startDisp = it.start || (it.timeNote ? '' : '');
   const endDisp   = it.end   || '';
-  const t1sub = it.timeNote ? `<div class="t2" style="font-style:italic">${it.timeNote}</div>` : '';
-  const t2    = endDisp ? `<div class="t2">→ ${it.end}</div>` : '';
+  const timeStr = [startDisp, endDisp].filter(Boolean).join(' → ');
+  const t1sub = it.timeNote ? `<span class="t2" style="font-style:italic;margin-left:6px;">${it.timeNote}</span>` : '';
   const modeIcon = {步行:'🚶',公車:'🚌',電車:'🚆',飛機:'✈️',渡船:'⛴',其他:'🚗'}
   const displayTitle = it.type==='transit' && it.transitMode
     ? `${modeIcon[it.transitMode]||''} ${it.transitMode}` : it.content;
+  const fromTo = (it.from || it.to)
+    ? `<span class="route-tag">${[it.from, it.to].filter(Boolean).join(' → ')}</span>` : '';
   return `<div class="row t-${it.type}" draggable="true" data-idx="${i}"
     onclick="handleRowClick(event,${i})"
     ondragstart="onDragStart(event,${i})"
@@ -974,9 +987,9 @@ function rowHTML(it,i){
     ondrop="onDrop(event,${i})"
     ondragend="onDragEnd(event)">
     <div class="drag-handle" onclick="event.stopPropagation()" title="拖曳排序">⠿</div>
-    <div class="row-time"><div class="t1">${startDisp}</div>${t1sub}${t2}</div>
+    <div class="row-time"><div class="t1">${timeStr}</div>${t1sub}</div>
     <div class="row-body">
-      <div class="row-title">${displayTitle}</div>
+      <div class="row-title">${displayTitle}${fromTo}</div>
       ${it.desc?`<div class="row-desc">${it.desc}</div>`:''}
     </div>
     <div class="row-meta">${badges.join('')}</div>
@@ -1094,7 +1107,7 @@ function selType(t){
   document.getElementById('transitFields').style.display = isTransit ? 'block' : 'none';
   document.getElementById('generalFields').style.display = isTransit ? 'none' : 'block';
 }
-const STATION_MODES = ['步行','公車','電車','飛機'];
+const STATION_MODES = ['步行','公車','電車','飛機','渡船','其他'];
 function selTransitMode(m){
   selTransitModeVal = m;
   document.querySelectorAll('.transit-mode-btn').forEach(b=>{
@@ -1607,6 +1620,24 @@ const MODE_ICON  = { 步行:'🚶', 公車:'🚌', 電車:'🚆', 飛機:'✈️
   document.getElementById('iEndH').innerHTML   = hOpts.join('');
   document.getElementById('iEndM').innerHTML   = mOpts.join('');
 })();
+
+// ── Rename trip ───────────────────────────────────────────────────────────
+async function renameTrip(i){
+  const trip = trips[i];
+  if(!trip) return;
+  const newName = prompt('輸入新的旅程名稱：', trip.name || '');
+  if(newName === null) return; // cancelled
+  const trimmed = newName.trim();
+  if(!trimmed || trimmed === trip.name) return;
+  try {
+    showLoading('更新中…');
+    const updated = await api('PATCH', `/trips/${trip.id}`, { name: trimmed });
+    trip.name = updated.name;
+    renderSidebar(); renderMain();
+    toast('名稱已更新');
+  } catch(e){ toast(e.message, true); }
+  finally { hideLoading(); }
+}
 
 // ── Share ────────────────────────────────────────────────────────────────
 function openShareModal(){
