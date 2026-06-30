@@ -216,7 +216,7 @@ body {
 .row-time .t1 { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; white-space: nowrap; }
 .row-time .t2 { font-size: 11px; margin-top: 2px; opacity: 0.65; }
 .route-tag {
-  display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 500;
+  display: inline-block; font-size: 11px; font-weight: 500;
   color: #1a5fa8; background: #ddeeff; padding: 2px 8px; border-radius: 20px;
   vertical-align: middle;
 }
@@ -564,25 +564,29 @@ body {
   .timeline-wrap { padding: 6px 12px 24px; }
   .timeline { gap: 3px; }
 
-  /* Rows — stacked layout for mobile, hide drag handle */
+  /* Rows — time+title same line, route+badges same line below */
   .row {
-    display: flex; flex-direction: column;
-    grid-template-columns: unset;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "time title" "meta meta";
+    align-items: baseline;
     border-radius: 8px;
+    column-gap: 8px;
   }
   .row .drag-handle { display: none; }
   .row-time {
-    padding: 8px 12px 4px; border-right: none; white-space: normal;
-    display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+    grid-area: time;
+    padding: 10px 0 6px 12px; border-right: none; white-space: nowrap;
+    display: flex; align-items: baseline; gap: 6px; flex-wrap: nowrap;
   }
-  .row-time .t1 { font-size: 13px; font-weight: 600; }
-  .row-time .t2 { font-size: 10px; margin-top: 0; }
-  .row-body { padding: 0 12px 8px; }
-  .row-title { font-size: 13px; white-space: normal; }
-  .row-desc { font-size: 11px; }
-  .route-tag { display: block; margin-left: 0; margin-top: 4px; width: fit-content; }
-  .row-meta { padding: 0 12px 10px; gap: 4px; flex-direction: row; justify-content: flex-start; flex-wrap: wrap; }
-  .badge { font-size: 10px; padding: 2px 6px; }
+  .row-time .t1 { font-size: 15px; font-weight: 600; }
+  .row-time .t2 { font-size: 11px; margin-top: 0; }
+  .row-body { grid-area: title; padding: 10px 12px 6px 0; min-width: 0; }
+  .row-title { font-size: 15px; font-weight: 600; white-space: normal; }
+  .row-desc { font-size: 12px; }
+  .route-tag { font-size: 12px; }
+  .row-meta { grid-area: meta; padding: 0 12px 10px; gap: 6px; flex-direction: row; justify-content: flex-start; flex-wrap: wrap; }
+  .badge { font-size: 11px; padding: 3px 8px; }
 
   /* Modal full-width on mobile */
   .overlay { padding: 0; align-items: flex-end; }
@@ -974,6 +978,7 @@ function renderMain(){
 
 function rowHTML(it,i){
   const badges = [];
+  if(it.from || it.to) badges.push(`<span class="route-tag">${[it.from, it.to].filter(Boolean).join(' → ')}</span>`);
   if(it.required) badges.push(`<span class="badge b-required">${it.required}</span>`);
   if(it.cost) badges.push(`<span class="badge b-cost">¥${Number(it.cost).toLocaleString()}</span>`);
   if(it.note) badges.push(`<span class="badge b-note" title="${it.note}">📌 ${it.note}</span>`);
@@ -985,8 +990,6 @@ function rowHTML(it,i){
   const modeIcon = {步行:'🚶',公車:'🚌',電車:'🚆',飛機:'✈️',渡船:'⛴',其他:'🚗'}
   const displayTitle = it.type==='transit' && it.transitMode
     ? `${modeIcon[it.transitMode]||''} ${it.transitMode}` : it.content;
-  const fromTo = (it.from || it.to)
-    ? `<span class="route-tag">${[it.from, it.to].filter(Boolean).join(' → ')}</span>` : '';
   return `<div class="row t-${it.type}" draggable="true" data-idx="${i}"
     onclick="handleRowClick(event,${i})"
     ondragstart="onDragStart(event,${i})"
@@ -997,7 +1000,7 @@ function rowHTML(it,i){
     <div class="drag-handle" onclick="event.stopPropagation()" title="拖曳排序">⠿</div>
     <div class="row-time"><div class="t1">${timeStr}</div>${t1sub}</div>
     <div class="row-body">
-      <div class="row-title">${displayTitle}${fromTo}</div>
+      <div class="row-title">${displayTitle}</div>
       ${it.desc?`<div class="row-desc">${it.desc}</div>`:''}
     </div>
     <div class="row-meta">${badges.join('')}</div>
