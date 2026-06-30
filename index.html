@@ -607,6 +607,7 @@ body {
       </div>
       <div class="topbar-actions">
         <button class="btn" onclick="openDayModal(true)">✎ 編輯此日</button>
+        <button class="btn" id="shareBtn" onclick="openShareModal()" style="color:var(--teal);border-color:rgba(29,122,110,0.3);">🔗 分享</button>
         <button class="btn btn-primary" onclick="openItemModal()">＋ 新增行程</button>
       </div>
     </div>
@@ -641,6 +642,19 @@ body {
       </div>
     </div>
   </main>
+</div>
+
+<!-- Share Modal -->
+<div class="overlay" id="shareOverlay" style="display:none;">
+  <div class="modal day-modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h2>分享行程（唯讀）</h2>
+      <button class="modal-close" onclick="closeShareModal()">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink-2);margin-bottom:12px;">旅伴點開連結即可查看完整行程，無法編輯。</p>
+    <div id="shareLinkBox" style="background:var(--paper-2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--ink-2);line-height:1.6;word-break:break-all;margin-bottom:10px;">產生中…</div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="copyShareLink()">複製連結</button>
+  </div>
 </div>
 
 <!-- Budget FAB -->
@@ -1592,6 +1606,97 @@ const MODE_ICON  = { 步行:'🚶', 公車:'🚌', 電車:'🚆', 飛機:'✈️
   document.getElementById('iStartM').innerHTML = mOpts.join('');
   document.getElementById('iEndH').innerHTML   = hOpts.join('');
   document.getElementById('iEndM').innerHTML   = mOpts.join('');
+})();
+
+// ── Share ────────────────────────────────────────────────────────────────
+function openShareModal(){
+  const trip = getTrip();
+  if(!trip) return;
+  const el = document.getElementById('shareOverlay');
+  el.style.display = 'flex';
+  document.getElementById('shareLinkBox').textContent = '產生中…';
+  const token = trip.shareToken;
+  if(token){
+    const url = location.origin + location.pathname + '?share=' + token;
+    document.getElementById('shareLinkBox').textContent = url;
+  } else {
+    api('PATCH', '/trips/' + trip.id, { shareToken: genShareToken() }).then(updated => {
+      trip.shareToken = updated.shareToken;
+      const url = location.origin + location.pathname + '?share=' + updated.shareToken;
+      document.getElementById('shareLinkBox').textContent = url;
+    }).catch(e => {
+      document.getElementById('shareLinkBox').textContent = '產生失敗：' + e.message;
+    });
+  }
+}
+function closeShareModal(){
+  document.getElementById('shareOverlay').style.display = 'none';
+}
+function copyShareLink(){
+  const text = document.getElementById('shareLinkBox').textContent;
+  if(!text || text === '產生中…' || text.startsWith('產生失敗')) return;
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+  toast('連結已複製！');
+  closeShareModal();
+}
+function genShareToken(){
+  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+}
+document.getElementById('shareOverlay').addEventListener('click', e => {
+  if(e.target === e.currentTarget) closeShareModal();
+});
+
+// ── Load shared view from URL ─────────────────────────────────────────────
+(async function checkSharedView(){
+  const params = new URLSearchParams(location.search);
+  const token = params.get('share');
+  if(!token) return;
+  // Hide edit UI immediately
+  document.getElementById('shareBtn') && (document.getElementById('shareBtn').style.display = 'none');
+  showLoading('載入分享行程…');
+  try {
+    const data = await api('GET', '/share/' + token);
+    const trip = data.trip;
+    const items = data.items;
+    const sd = new Date(trip.startDate + 'T00:00:00');
+    const ed = new Date(trip.endDate + 'T00:00:00');
+    const total = Math.round((ed - sd) / 86400000) + 1;
+    const days = [];
+    for(let i = 0; i < total; i++){
+      const dt = new Date(sd.getTime()); dt.setDate(dt.getDate() + i);
+      const iso = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+      days.push({ city:'', dateStr: fmtFull(iso), isoDate: iso, items:[] });
+    }
+    items.forEach(it => {
+      const d = days[it.dayIndex];
+      if(d){ d.items = d.items || []; d.items.push(it); if(it.city) d.city = it.city; }
+    });
+    trips = [{ ...trip, days }];
+    curTrip = 0; cur = 0;
+    // Apply read-only styles
+    const style = document.createElement('style');
+    style.textContent =
+      '.topbar-actions button:not(#budgetFabBtn) { display:none !important; }' +
+      '#topNav .btn-add-day { display:none !important; }' +
+      '.trip-tab .tab-close { display:none !important; }' +
+      '.row { cursor:default !important; }' +
+      '.drag-handle { display:none !important; }';
+    document.head.appendChild(style);
+    // Show readonly banner
+    const banner = document.createElement('div');
+    banner.id = 'readonlyBanner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:300;background:var(--teal);color:#fff;text-align:center;padding:9px 16px;font-size:12px;font-family:var(--sans);';
+    banner.textContent = '👁 唯讀模式・你正在查看共享行程';
+    document.body.prepend(banner);
+    document.querySelector('.shell').style.paddingTop = '37px';
+    renderSidebar(); renderMain();
+  } catch(e){
+    toast('無法載入分享行程：' + e.message, true);
+  } finally { hideLoading(); }
 })();
 
 // ── Init: load trips from API ────────────────────────────────────────────
