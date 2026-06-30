@@ -564,16 +564,24 @@ body {
   .timeline-wrap { padding: 6px 12px 24px; }
   .timeline { gap: 3px; }
 
-  /* Rows — compact, hide drag handle */
-  .row { grid-template-columns: 80px 1fr auto; border-radius: 7px; }
+  /* Rows — stacked layout for mobile, hide drag handle */
+  .row {
+    display: flex; flex-direction: column;
+    grid-template-columns: unset;
+    border-radius: 8px;
+  }
   .row .drag-handle { display: none; }
-  .row-time { padding: 9px 10px; }
-  .row-time .t1 { font-size: 12px; }
-  .row-time .t2 { font-size: 10px; }
-  .row-body { padding: 9px 10px; }
-  .row-title { font-size: 13px; }
+  .row-time {
+    padding: 8px 12px 4px; border-right: none; white-space: normal;
+    display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  }
+  .row-time .t1 { font-size: 13px; font-weight: 600; }
+  .row-time .t2 { font-size: 10px; margin-top: 0; }
+  .row-body { padding: 0 12px 8px; }
+  .row-title { font-size: 13px; white-space: normal; }
   .row-desc { font-size: 11px; }
-  .row-meta { padding: 8px 10px; gap: 4px; flex-direction: column; align-items: flex-end; }
+  .route-tag { display: block; margin-left: 0; margin-top: 4px; width: fit-content; }
+  .row-meta { padding: 0 12px 10px; gap: 4px; flex-direction: row; justify-content: flex-start; flex-wrap: wrap; }
   .badge { font-size: 10px; padding: 2px 6px; }
 
   /* Modal full-width on mobile */
