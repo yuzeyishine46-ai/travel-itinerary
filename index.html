@@ -412,6 +412,8 @@ body {
 .trip-tab:hover .tab-rename, .trip-tab.active .tab-rename { opacity: 0.6; }
 .trip-tab .tab-rename:hover { opacity: 1 !important; background: rgba(0,0,0,0.12); }
 #tripTabs::-webkit-scrollbar { display: none; }
+.trip-tab.tab-dragging { opacity: 0.35; }
+.trip-tab.tab-drag-over { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 /* Budget FAB */
 .budget-fab {
@@ -525,13 +527,13 @@ body {
   .timeline { gap: 4px; }
 
   /* Rows — wider time col, larger text */
-  .row { grid-template-columns: 28px 145px 1fr auto; }
-  .row-time { padding: 12px 14px; }
+  .row { grid-template-columns: 28px 145px 1fr auto; grid-template-areas: none; display: grid; }
+  .row-time { padding: 12px 14px; grid-area: auto; white-space: nowrap; }
   .row-time .t1 { font-size: 13px; }
-  .row-body { padding: 12px 16px; }
-  .row-title { font-size: 14px; }
+  .row-body { padding: 12px 16px; grid-area: auto; }
+  .row-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row-desc { font-size: 12px; }
-  .row-meta { padding: 12px 14px; gap: 8px; }
+  .row-meta { padding: 12px 14px; gap: 8px; grid-area: auto; flex-direction: row; }
   .badge { font-size: 11px; padding: 3px 9px; }
 
   /* Modal wider */
@@ -924,7 +926,15 @@ function renderSidebar(){
   const tabsEl = document.getElementById('tripTabs');
   if(tabsEl){
     tabsEl.innerHTML = trips.map((t,i)=>
-      `<button class="trip-tab${i===curTrip?' active':''}" onclick="switchTrip(${i})" ondblclick="event.stopPropagation();renameTrip(${i})">
+      `<button class="trip-tab${i===curTrip?' active':''}"
+        onclick="switchTrip(${i})"
+        ondblclick="event.stopPropagation();renameTrip(${i})"
+        draggable="true"
+        ondragstart="onTripDragStart(event,${i})"
+        ondragover="onTripDragOver(event,${i})"
+        ondragleave="onTripDragLeave(event)"
+        ondrop="onTripDrop(event,${i})"
+        ondragend="onTripDragEnd(event)">
         ${t.name||'旅程'+(i+1)}
         <span class="tab-rename" onclick="event.stopPropagation();renameTrip(${i})" title="重新命名">✎</span>
         <span class="tab-close" onclick="event.stopPropagation();deleteTrip(${i})">✕</span>
@@ -1631,6 +1641,49 @@ const MODE_ICON  = { 步行:'🚶', 公車:'🚌', 電車:'🚆', 飛機:'✈️
   document.getElementById('iEndH').innerHTML   = hOpts.join('');
   document.getElementById('iEndM').innerHTML   = mOpts.join('');
 })();
+
+// ── Trip tab drag-to-reorder ─────────────────────────────────────────────
+let tripDragSrc = null;
+function onTripDragStart(e, i){
+  tripDragSrc = i;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(()=>{
+    const tabs = document.querySelectorAll('.trip-tab');
+    if(tabs[i]) tabs[i].classList.add('tab-dragging');
+  }, 0);
+}
+function onTripDragOver(e, i){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  if(tripDragSrc === null || tripDragSrc === i) return;
+  document.querySelectorAll('.trip-tab').forEach(t => t.classList.remove('tab-drag-over'));
+  const tabs = document.querySelectorAll('.trip-tab');
+  if(tabs[i]) tabs[i].classList.add('tab-drag-over');
+}
+function onTripDragLeave(e){
+  e.currentTarget.classList.remove('tab-drag-over');
+}
+function onTripDragEnd(e){
+  document.querySelectorAll('.trip-tab').forEach(t => {
+    t.classList.remove('tab-dragging', 'tab-drag-over');
+  });
+  tripDragSrc = null;
+}
+function onTripDrop(e, targetIdx){
+  e.preventDefault();
+  e.stopPropagation();
+  if(tripDragSrc === null || tripDragSrc === targetIdx) return;
+  // Reorder trips array
+  const moved = trips.splice(tripDragSrc, 1)[0];
+  trips.splice(targetIdx, 0, moved);
+  // Update curTrip to follow the active trip
+  if(curTrip === tripDragSrc) curTrip = targetIdx;
+  else if(curTrip > tripDragSrc && curTrip <= targetIdx) curTrip--;
+  else if(curTrip < tripDragSrc && curTrip >= targetIdx) curTrip++;
+  tripDragSrc = null;
+  renderSidebar(); renderMain();
+  toast('已重新排序');
+}
 
 // ── Rename trip ───────────────────────────────────────────────────────────
 async function renameTrip(i){
