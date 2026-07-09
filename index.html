@@ -220,6 +220,12 @@ body {
   color: #1a5fa8; background: #ddeeff; padding: 2px 8px; border-radius: 20px;
   vertical-align: middle;
 }
+.row-title-wrap {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.row-link-badge {
+  flex-shrink: 0; white-space: nowrap;
+}
 .row-body { padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .row-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-desc { font-size: 11px; opacity: 0.7; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -583,7 +589,9 @@ body {
   .row-title { font-size: 15px; font-weight: 600; white-space: normal; }
   .row-desc { font-size: 12px; }
   .route-tag { font-size: 12px; }
-  .row-meta { flex: 0 0 100%; order: 3; padding: 0 12px 10px; gap: 6px; flex-direction: row; justify-content: flex-start; flex-wrap: wrap; }
+  .row-meta { flex: 0 0 100%; order: 3; padding: 4px 12px 10px; gap: 6px; flex-direction: row; justify-content: flex-start; flex-wrap: wrap; }
+  .row-title-wrap { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .row-link-badge { flex-shrink: 0; }
   .badge { font-size: 11px; padding: 3px 8px; }
 
   /* Modal full-width on mobile */
@@ -983,13 +991,13 @@ function renderMain(){
 }
 
 function rowHTML(it,i){
-  const badges = [];
-  if(it.from || it.to) badges.push(`<span class="route-tag">${[it.from, it.to].filter(Boolean).join(' → ')}</span>`);
-  if(it.required) badges.push(`<span class="badge b-required">${it.required}</span>`);
-  if(it.cost) badges.push(`<span class="badge b-cost">¥${Number(it.cost).toLocaleString()}</span>`);
-  if(it.note) badges.push(`<span class="badge b-note" title="${it.note}">📌 ${it.note}</span>`);
-  if(it.link) badges.push(`<a class="badge b-transport" href="${it.link}" target="_blank" onclick="event.stopPropagation()">🔗 地圖</a>`);
-  const startDisp = it.start || (it.timeNote ? '' : '');
+  const metaBadges = [];
+  if(it.from || it.to) metaBadges.push(`<span class="route-tag">${[it.from, it.to].filter(Boolean).join(' → ')}</span>`);
+  if(it.required) metaBadges.push(`<span class="badge b-required">${it.required}</span>`);
+  if(it.cost) metaBadges.push(`<span class="badge b-cost">¥${Number(it.cost).toLocaleString()}</span>`);
+  if(it.note) metaBadges.push(`<span class="badge b-note" title="${it.note}">📌 ${it.note}</span>`);
+  const linkBadge = it.link ? `<a class="badge b-transport row-link-badge" href="${it.link}" target="_blank" onclick="event.stopPropagation()">🔗 地圖</a>` : '';
+  const startDisp = it.start || '';
   const endDisp   = it.end   || '';
   const timeStr = [startDisp, endDisp].filter(Boolean).join(' → ');
   const t1sub = it.timeNote ? `<span class="t2" style="font-style:italic;margin-left:6px;">${it.timeNote}</span>` : '';
@@ -1006,10 +1014,13 @@ function rowHTML(it,i){
     <div class="drag-handle" onclick="event.stopPropagation()" title="拖曳排序">⠿</div>
     <div class="row-time"><div class="t1">${timeStr}</div>${t1sub}</div>
     <div class="row-body">
-      <div class="row-title">${displayTitle}</div>
+      <div class="row-title-wrap">
+        <div class="row-title">${displayTitle}</div>
+        ${linkBadge}
+      </div>
       ${it.desc?`<div class="row-desc">${it.desc}</div>`:''}
     </div>
-    <div class="row-meta">${badges.join('')}</div>
+    <div class="row-meta">${metaBadges.join('')}</div>
   </div>`;
 }
 
