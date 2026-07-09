@@ -209,6 +209,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: flex-start;
   border-right: 1px solid transparent;
   background: inherit;
 }
@@ -572,7 +573,7 @@ body {
   .timeline-wrap { padding: 6px 12px 24px; }
   .timeline { gap: 3px; }
 
-  /* Rows — mobile: wrap into 2 lines */
+  /* Rows — mobile: wrap into 2 lines, all vertically centered */
   .row {
     display: flex; flex-wrap: wrap;
     border-radius: 8px; align-items: center;
@@ -580,16 +581,17 @@ body {
   .row .drag-handle { display: none; }
   .row-time {
     flex: 0 0 auto; order: 1;
-    padding: 10px 8px 6px 12px; border-right: none; white-space: nowrap;
-    display: flex; align-items: baseline; gap: 4px;
+    padding: 12px 8px 12px 12px; border-right: none; white-space: nowrap;
+    display: flex; align-items: center; gap: 4px; align-self: center;
   }
-  .row-time .t1 { font-size: 15px; font-weight: 600; }
+  .row-time .t1 { font-size: 15px; font-weight: 600; line-height: 1.2; }
   .row-time .t2 { font-size: 11px; }
-  .row-body { flex: 1 1 0; order: 2; padding: 10px 12px 6px 4px; min-width: 0; }
-  .row-title { font-size: 15px; font-weight: 600; white-space: normal; }
-  .row-desc { font-size: 12px; }
+  .row-body { flex: 1 1 0; order: 2; padding: 12px 12px 12px 4px; min-width: 0; display: flex; flex-direction: column; justify-content: center; align-self: center; }
+  .row-title { font-size: 15px; font-weight: 600; white-space: normal; line-height: 1.3; }
+  .row-desc { font-size: 12px; line-height: 1.3; }
   .route-tag { font-size: 12px; }
-  .row-meta { flex: 0 0 100%; order: 3; padding: 4px 12px 10px; gap: 6px; flex-direction: row; justify-content: flex-start; flex-wrap: wrap; }
+  .row-meta { flex: 0 0 100%; order: 3; padding: 0 12px 12px; gap: 6px; flex-direction: row; justify-content: flex-start; flex-wrap: wrap; align-items: center; }
+  [data-type="transit"] .row-meta { justify-content: flex-end; }
   .row-title-wrap { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
   .row-link-badge { flex-shrink: 0; }
   .badge { font-size: 11px; padding: 3px 8px; }
@@ -731,6 +733,7 @@ body {
           <button type="button" class="transit-mode-btn" data-m="電車"  onclick="selTransitMode('電車')">🚆 電車</button>
           <button type="button" class="transit-mode-btn" data-m="飛機"  onclick="selTransitMode('飛機')">✈️ 飛機</button>
           <button type="button" class="transit-mode-btn" data-m="渡船"  onclick="selTransitMode('渡船')">⛴ 渡船</button>
+          <button type="button" class="transit-mode-btn" data-m="包車"  onclick="selTransitMode('包車')">🚗 包車</button>
           <button type="button" class="transit-mode-btn" data-m="其他"  onclick="selTransitMode('其他')">其他</button>
         </div>
       </div>
@@ -1001,10 +1004,10 @@ function rowHTML(it,i){
   const endDisp   = it.end   || '';
   const timeStr = [startDisp, endDisp].filter(Boolean).join(' → ');
   const t1sub = it.timeNote ? `<span class="t2" style="font-style:italic;margin-left:6px;">${it.timeNote}</span>` : '';
-  const modeIcon = {步行:'🚶',公車:'🚌',電車:'🚆',飛機:'✈️',渡船:'⛴',其他:'🚗'}
+  const modeIcon = {步行:'🚶',公車:'🚌',電車:'🚆',飛機:'✈️',渡船:'⛴',包車:'🚗',其他:'🚙'}
   const displayTitle = it.type==='transit' && it.transitMode
     ? `${modeIcon[it.transitMode]||''} ${it.transitMode}` : it.content;
-  return `<div class="row t-${it.type}" draggable="true" data-idx="${i}"
+  return `<div class="row t-${it.type}" draggable="true" data-idx="${i}" data-type="${it.type}"
     onclick="handleRowClick(event,${i})"
     ondragstart="onDragStart(event,${i})"
     ondragover="onDragOver(event)"
@@ -1135,7 +1138,7 @@ function selType(t){
   document.getElementById('transitFields').style.display = isTransit ? 'block' : 'none';
   document.getElementById('generalFields').style.display = isTransit ? 'none' : 'block';
 }
-const STATION_MODES = ['步行','公車','電車','飛機','渡船','其他'];
+const STATION_MODES = ['步行','公車','電車','飛機','渡船','包車','其他'];
 function selTransitMode(m){
   selTransitModeVal = m;
   document.querySelectorAll('.transit-mode-btn').forEach(b=>{
@@ -1633,7 +1636,7 @@ async function wCreate(){
 
 // ── PDF Export ───────────────────────────────────────────────────────────
 const TYPE_LABEL = { must:'★ 重點景點', optional:'一般景點', meal:'用餐時間', free:'自由時間', transit:'交通移動', other:'其他' };
-const MODE_ICON  = { 步行:'🚶', 公車:'🚌', 電車:'🚆', 飛機:'✈️', 渡船:'⛴', 其他:'🚗' };
+const MODE_ICON  = { 步行:'🚶', 公車:'🚌', 電車:'🚆', 飛機:'✈️', 渡船:'⛴', 包車:'🚗', 其他:'🚙' };
 
 
 
