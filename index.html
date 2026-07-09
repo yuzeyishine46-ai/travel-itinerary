@@ -227,6 +227,9 @@ body {
 .row-link-badge {
   flex-shrink: 0; white-space: nowrap;
 }
+.meta-transit { flex-direction: column !important; align-items: flex-end !important; gap: 4px !important; }
+.meta-route { display: flex; justify-content: flex-end; }
+.meta-notes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .row-body { padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .row-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-desc { font-size: 11px; opacity: 0.7; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -994,11 +997,14 @@ function renderMain(){
 }
 
 function rowHTML(it,i){
-  const metaBadges = [];
-  if(it.from || it.to) metaBadges.push(`<span class="route-tag">${[it.from, it.to].filter(Boolean).join(' → ')}</span>`);
-  if(it.required) metaBadges.push(`<span class="badge b-required">${it.required}</span>`);
-  if(it.cost) metaBadges.push(`<span class="badge b-cost">¥${Number(it.cost).toLocaleString()}</span>`);
-  if(it.note) metaBadges.push(`<span class="badge b-note" title="${it.note}">📌 ${it.note}</span>`);
+  const routeBadge = (it.from || it.to) ? `<div class="meta-route"><span class="route-tag">${[it.from, it.to].filter(Boolean).join(' → ')}</span></div>` : '';
+  const noteBadges = [];
+  if(it.required) noteBadges.push(`<span class="badge b-required">${it.required}</span>`);
+  if(it.cost) noteBadges.push(`<span class="badge b-cost">¥${Number(it.cost).toLocaleString()}</span>`);
+  if(it.note) noteBadges.push(`<span class="badge b-note" title="${it.note}">📌 ${it.note}</span>`);
+  const metaBadges = it.type === 'transit'
+    ? [routeBadge, noteBadges.length ? `<div class="meta-notes">${noteBadges.join('')}</div>` : ''].filter(Boolean)
+    : [...(it.from||it.to ? [`<span class="route-tag">${[it.from,it.to].filter(Boolean).join(' → ')}</span>`] : []), ...noteBadges];
   const linkBadge = it.link ? `<a class="badge b-transport row-link-badge" href="${it.link}" target="_blank" onclick="event.stopPropagation()">🔗 地圖</a>` : '';
   const startDisp = it.start || '';
   const endDisp   = it.end   || '';
@@ -1023,7 +1029,7 @@ function rowHTML(it,i){
       </div>
       ${it.desc?`<div class="row-desc">${it.desc}</div>`:''}
     </div>
-    <div class="row-meta">${metaBadges.join('')}</div>
+    <div class="row-meta${it.type==='transit'?' meta-transit':''}">${metaBadges.join('')}</div>
   </div>`;
 }
 
