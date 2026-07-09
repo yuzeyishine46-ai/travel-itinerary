@@ -527,13 +527,13 @@ body {
   .timeline { gap: 4px; }
 
   /* Rows — wider time col, larger text */
-  .row { grid-template-columns: 28px 145px 1fr auto; grid-template-areas: none; display: grid; }
-  .row-time { padding: 12px 14px; grid-area: auto; white-space: nowrap; }
+  .row { grid-template-columns: 28px 145px 1fr auto; grid-template-areas: unset; display: grid; align-items: stretch; }
+  .row-time { padding: 12px 14px; grid-area: unset; white-space: nowrap; display: flex; flex-direction: column; justify-content: center; }
   .row-time .t1 { font-size: 13px; }
-  .row-body { padding: 12px 16px; grid-area: auto; }
+  .row-body { padding: 12px 16px; grid-area: unset; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
   .row-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row-desc { font-size: 12px; }
-  .row-meta { padding: 12px 14px; gap: 8px; grid-area: auto; flex-direction: row; }
+  .row-meta { padding: 12px 14px; gap: 8px; grid-area: unset; display: flex; flex-direction: row; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
   .badge { font-size: 11px; padding: 3px 9px; }
 
   /* Modal wider */
