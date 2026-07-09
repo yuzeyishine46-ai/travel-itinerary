@@ -589,6 +589,7 @@ body {
     grid-column: 1; grid-row: 1;
     padding: 14px 10px 14px 12px; border-right: none; white-space: nowrap;
     display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
+    align-self: stretch; justify-content: center;
   }
   .row-time .t1 { font-size: 14px; font-weight: 600; }
   .row-time .t2 { font-size: 11px; font-style: italic; opacity: 0.75; }
@@ -1299,9 +1300,9 @@ async function loadTripItems(tripIdx){
       const d = t.days[it.dayIndex];
       if(d){ d.items = d.items || []; d.items.push(it); }
     });
-    // sort each day by sortOrder
+    // sort each day by start time
     t.days.forEach(d => {
-      if(d.items) d.days = d.items.sort((a,b) => a.sortOrder - b.sortOrder);
+      if(d.items) d.items.sort((a,b) => timeScore(a.start) - timeScore(b.start));
     });
     renderSidebar(); renderMain();
   } catch(e){ toast('載入行程失敗：' + e.message, true); }
@@ -1794,6 +1795,10 @@ document.getElementById('shareOverlay').addEventListener('click', e => {
     items.forEach(it => {
       const d = days[it.dayIndex];
       if(d){ d.items = d.items || []; d.items.push(it); if(it.city) d.city = it.city; }
+    });
+    // Sort each day's items by start time
+    days.forEach(d => {
+      if(d.items) d.items.sort((a,b) => timeScore(a.start) - timeScore(b.start));
     });
     trips = [{ ...trip, days }];
     curTrip = 0; cur = 0;
