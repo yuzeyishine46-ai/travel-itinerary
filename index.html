@@ -1037,9 +1037,8 @@ function rowHTML(it,i){
     <div class="row-body">
       <div class="row-title">${displayTitle}</div>
       ${it.desc?`<div class="row-desc">${it.desc}</div>`:''}
-      ${linkBadge}
     </div>
-    <div class="row-meta${it.type==='transit'?' meta-transit':''}">${metaBadges.join('')}</div>
+    <div class="row-meta${it.type==='transit'?' meta-transit':''}">${linkBadge}${metaBadges.join('')}</div>
   </div>`;
 }
 
