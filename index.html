@@ -891,6 +891,7 @@ body {
 <script>
 const RATE = 0.197;
 const API = 'https://travel-api.yuzeyishine46.workers.dev';
+let IS_READONLY = false;
 
 // ── State ─────────────────────────────────────────────────────────────────
 let trips = [];   // [{ id, name, startDate, endDate, shareToken, days:[] }]
@@ -1333,6 +1334,7 @@ function checkTimeConflicts(){
 let dragSrcIdx = null;
 
 function handleRowClick(e, i){
+  if(IS_READONLY) return;
   // Don't open edit if a drag just happened
   if(e.currentTarget.dataset.dragged === '1'){ e.currentTarget.dataset.dragged='0'; return; }
   editItem(i);
@@ -1802,6 +1804,7 @@ document.getElementById('shareOverlay').addEventListener('click', e => {
     });
     trips = [{ ...trip, days }];
     curTrip = 0; cur = 0;
+    IS_READONLY = true;
     // Apply read-only styles
     const style = document.createElement('style');
     style.textContent =
