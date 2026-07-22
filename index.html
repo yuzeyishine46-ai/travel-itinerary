@@ -1076,9 +1076,10 @@ async function deleteTrip(i){
 }
 
 // Item modal
-function openItemModal(){ const days=getDays(); if(!days.length){alert('請先新增天數'); return;} editIdx=null; resetForm(); document.getElementById('itemModalTitle').textContent='新增行程項目'; document.getElementById('btnDelete').style.display='none'; document.getElementById('itemOverlay').classList.add('open'); }
+function openItemModal(){ if(IS_READONLY) return; const days=getDays(); if(!days.length){alert('請先新增天數'); return;} editIdx=null; resetForm(); document.getElementById('itemModalTitle').textContent='新增行程項目'; document.getElementById('btnDelete').style.display='none'; document.getElementById('itemOverlay').classList.add('open'); }
 function closeItemModal(){ document.getElementById('itemOverlay').classList.remove('open'); }
 function editItem(i){
+  if(IS_READONLY) return;
   const it = getDays()[cur].items[i];
   editIdx=i;
   selTransitModeVal = it.transitMode||'';
@@ -1808,10 +1809,11 @@ document.getElementById('shareOverlay').addEventListener('click', e => {
     // Apply read-only styles
     const style = document.createElement('style');
     style.textContent =
+      '.row { cursor: default !important; pointer-events: none; }' +
+      'a.badge, button.budget-fab { pointer-events: auto !important; }' +
       '.topbar-actions button:not(#budgetFabBtn) { display:none !important; }' +
       '#topNav .btn-add-day { display:none !important; }' +
       '.trip-tab .tab-close { display:none !important; }' +
-      '.row { cursor:default !important; }' +
       '.drag-handle { display:none !important; }';
     document.head.appendChild(style);
     // Show readonly banner
